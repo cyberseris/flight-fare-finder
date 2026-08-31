@@ -42,7 +42,7 @@ const DESTINATIONS = [
 function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [destination, setDestination] = useState(DESTINATIONS[0].code);
+  const [destination, setDestination] = useState("NRT");
   const [targetPrice, setTargetPrice] = useState("");
   const [saving, setSaving] = useState(false);
 
