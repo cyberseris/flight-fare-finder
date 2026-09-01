@@ -5,9 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Flight Price Notifier — "Warm neighborhood" design system.
- * Cream paper surfaces, warm ink text, berry red primary, pine success,
- * butter warning. Inter + Noto Sans TC for text, JetBrains Mono for fares.
+ * Flight Price Notifier — "Warm arrivals" design system.
+ * After ゆう動物クリニック (yu-ac.com): cream paper, warm ink, a single
+ * cheerful orange primary, pine for "price dropped / you save", butter for
+ * near-threshold. Rounded display face (M PLUS Rounded 1c) carries the warmth;
+ * Inter + Noto Sans TC for body, JetBrains Mono kept for fare figures.
  */
 
 @theme inline {
@@ -41,63 +43,71 @@
   --color-surface: var(--surface);
   --color-pine: var(--pine);
   --color-butter: var(--butter);
+  --color-peach: var(--peach);
+  --color-peach-foreground: var(--peach-foreground);
   --font-sans: "Inter", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "M PLUS Rounded 1c", "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.875rem;
   /* cream paper */
-  --background: oklch(0.967 0.014 85);
-  --foreground: oklch(0.245 0.018 60);
+  --background: oklch(0.968 0.014 84);
+  --foreground: oklch(0.255 0.018 58);
   /* cream-2 raised surface */
-  --surface: oklch(0.936 0.02 82);
-  --card: oklch(0.936 0.02 82);
-  --card-foreground: oklch(0.245 0.018 60);
-  --popover: oklch(0.967 0.014 85);
-  --popover-foreground: oklch(0.245 0.018 60);
-  /* berry */
-  --primary: oklch(0.505 0.165 12);
-  --primary-foreground: oklch(0.967 0.014 85);
-  --secondary: oklch(0.936 0.02 82);
-  --secondary-foreground: oklch(0.245 0.018 60);
-  --muted: oklch(0.936 0.02 82);
-  --muted-foreground: oklch(0.52 0.025 60);
-  --accent: oklch(0.505 0.165 12);
-  --accent-foreground: oklch(0.967 0.014 85);
-  --destructive: oklch(0.505 0.165 12);
-  --destructive-foreground: oklch(0.967 0.014 85);
-  --border: oklch(0.245 0.018 60 / 12%);
-  --input: oklch(0.245 0.018 60 / 18%);
-  --ring: oklch(0.505 0.165 12 / 50%);
-  /* pine = success / reached target, butter = near threshold */
-  --pine: oklch(0.52 0.065 165);
+  --surface: oklch(0.938 0.02 80);
+  --card: oklch(0.99 0.006 84);
+  --card-foreground: oklch(0.255 0.018 58);
+  --popover: oklch(0.99 0.006 84);
+  --popover-foreground: oklch(0.255 0.018 58);
+  /* orange — brand + calls to action */
+  --primary: oklch(0.64 0.17 46);
+  --primary-foreground: oklch(0.99 0.005 84);
+  --secondary: oklch(0.938 0.02 80);
+  --secondary-foreground: oklch(0.255 0.018 58);
+  --muted: oklch(0.938 0.02 80);
+  --muted-foreground: oklch(0.53 0.025 58);
+  --accent: oklch(0.93 0.032 54);
+  --accent-foreground: oklch(0.47 0.13 42);
+  --destructive: oklch(0.52 0.17 20);
+  --destructive-foreground: oklch(0.99 0.005 84);
+  --border: oklch(0.255 0.018 58 / 12%);
+  --input: oklch(0.255 0.018 58 / 18%);
+  --ring: oklch(0.64 0.17 46 / 50%);
+  /* pine = "price dropped / you save", butter = near threshold */
+  --pine: oklch(0.52 0.09 162);
   --butter: oklch(0.78 0.12 85);
+  /* peach = soft washes, icon tiles, step discs */
+  --peach: oklch(0.93 0.032 54);
+  --peach-foreground: oklch(0.47 0.13 42);
 }
 
 .dark {
-  --background: oklch(0.22 0.015 60);
-  --foreground: oklch(0.95 0.012 85);
-  --surface: oklch(0.27 0.018 60);
-  --card: oklch(0.27 0.018 60);
-  --card-foreground: oklch(0.95 0.012 85);
-  --popover: oklch(0.25 0.015 60);
-  --popover-foreground: oklch(0.95 0.012 85);
-  --primary: oklch(0.62 0.16 12);
-  --primary-foreground: oklch(0.97 0.01 85);
-  --secondary: oklch(0.3 0.02 60);
-  --secondary-foreground: oklch(0.95 0.012 85);
-  --muted: oklch(0.3 0.02 60);
-  --muted-foreground: oklch(0.68 0.02 65);
-  --accent: oklch(0.62 0.16 12);
-  --accent-foreground: oklch(0.97 0.01 85);
-  --destructive: oklch(0.62 0.16 12);
-  --destructive-foreground: oklch(0.97 0.01 85);
-  --border: oklch(0.95 0.012 85 / 12%);
-  --input: oklch(0.95 0.012 85 / 18%);
-  --ring: oklch(0.62 0.16 12 / 50%);
-  --pine: oklch(0.66 0.09 165);
+  --background: oklch(0.225 0.014 58);
+  --foreground: oklch(0.95 0.012 84);
+  --surface: oklch(0.275 0.017 58);
+  --card: oklch(0.278 0.017 58);
+  --card-foreground: oklch(0.95 0.012 84);
+  --popover: oklch(0.255 0.015 58);
+  --popover-foreground: oklch(0.95 0.012 84);
+  --primary: oklch(0.72 0.16 50);
+  --primary-foreground: oklch(0.2 0.03 50);
+  --secondary: oklch(0.3 0.02 58);
+  --secondary-foreground: oklch(0.95 0.012 84);
+  --muted: oklch(0.3 0.02 58);
+  --muted-foreground: oklch(0.7 0.02 62);
+  --accent: oklch(0.34 0.035 46);
+  --accent-foreground: oklch(0.82 0.1 55);
+  --destructive: oklch(0.62 0.16 20);
+  --destructive-foreground: oklch(0.97 0.01 84);
+  --border: oklch(0.95 0.012 84 / 12%);
+  --input: oklch(0.95 0.012 84 / 18%);
+  --ring: oklch(0.72 0.16 50 / 50%);
+  --pine: oklch(0.68 0.1 162);
   --butter: oklch(0.82 0.11 85);
+  --peach: oklch(0.34 0.035 46);
+  --peach-foreground: oklch(0.82 0.1 55);
 }
 
 @layer base {
@@ -146,5 +156,25 @@
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* hero fare line drawing itself in */
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
   }
 }
