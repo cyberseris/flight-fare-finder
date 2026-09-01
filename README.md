@@ -18,9 +18,15 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
+## Tech stack
+
+Plain **Vite + React** single-page app (no SSR). Client-side routing with
+**React Router** (`/`, `/app`, `/sign-in`, `/sign-up`). Auth and data via
+Supabase. Styling with Tailwind CSS v4.
+
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
 git clone <this-repository-url>
@@ -28,3 +34,24 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+Environment variables (see `.env`) — only the `VITE_`-prefixed ones are used by
+the SPA and are inlined into the bundle at build time:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_PROJECT_ID`
+
+## Build
+
+```sh
+npm run build      # → static assets in dist/
+npm run preview     # serve the production build locally
+```
+
+## Deploy to Vercel
+
+The repo ships a `vercel.json` that sets the framework to Vite, builds to
+`dist/`, and rewrites every path to `/index.html` so client-side deep links
+(e.g. `/app`) resolve. Import the repo in Vercel, add the `VITE_*` environment
+variables, and deploy — no other configuration needed.
