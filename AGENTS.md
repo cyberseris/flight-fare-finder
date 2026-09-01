@@ -1,10 +1,7 @@
-<!-- LOVABLE:BEGIN -->
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-<!-- LOVABLE:END -->
+# Agent notes
+
+- The backend is the project's own Supabase project. Client config lives in
+  `src/integrations/supabase/client.ts` and reads `VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_PUBLISHABLE_KEY` from `.env`.
+- Keep the Sign Up / Sign In / Sign Out flow in `src/pages/Auth.tsx` and
+  `src/pages/Dashboard.tsx` intact.
