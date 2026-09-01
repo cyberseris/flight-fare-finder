@@ -300,7 +300,7 @@ export default function Landing() {
                   </span>
                 ))}
               </span>
-              <span>已經幫旅客盯了 128 條航線</span>
+              <span>已經幫旅客盯了 100 條航線</span>
               <span className="size-[5px] rounded-full bg-border" aria-hidden="true" />
               <span>不綁約，隨時取消</span>
             </div>
