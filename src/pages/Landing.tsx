@@ -160,7 +160,15 @@ function FareWatchCard() {
             strokeLinejoin="round"
             className="[stroke-dasharray:1] [stroke-dashoffset:1] animate-[draw_1.6s_ease_0.35s_both]"
           />
-          <circle cx="298" cy="150" r="11" fill="none" stroke="var(--color-pine)" strokeWidth="2" opacity="0.35" />
+          <circle
+            cx="298"
+            cy="150"
+            r="11"
+            fill="none"
+            stroke="var(--color-pine)"
+            strokeWidth="2"
+            opacity="0.35"
+          />
           <circle cx="298" cy="150" r="5" fill="var(--color-pine)" />
         </svg>
       </div>
@@ -172,8 +180,7 @@ function FareWatchCard() {
         <span className="text-right text-[0.82rem] text-muted-foreground">
           你的目標 <b className="font-display text-foreground">NT$4,500</b>
           <br />
-          省下約{" "}
-          <span className="font-bold text-pine">NT$1,620</span>
+          省下約 <span className="font-bold text-pine">NT$1,620</span>
         </span>
       </div>
     </div>
@@ -242,8 +249,7 @@ export default function Landing() {
         <div
           className="pointer-events-none absolute -left-[15%] -top-[25%] h-[70%] w-[65%] rounded-full opacity-70 blur-2xl"
           style={{
-            background:
-              "radial-gradient(circle at 35% 40%, var(--color-peach), transparent 62%)",
+            background: "radial-gradient(circle at 35% 40%, var(--color-peach), transparent 62%)",
           }}
           aria-hidden="true"
         />
@@ -284,7 +290,7 @@ export default function Landing() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3.5 text-sm text-muted-foreground">
               <span className="flex" aria-hidden="true">
-                {["近", "安", "妮", "K"].map((c, i) => (
+                {["小", "幫", "手"].map((c, i) => (
                   <span
                     key={c}
                     className="grid size-6 place-items-center rounded-full border-2 border-background bg-peach text-[0.7rem] font-bold text-peach-foreground"
@@ -406,10 +412,7 @@ export default function Landing() {
           <ul className="mb-7 flex flex-col gap-3 text-left">
             {PLAN_POINTS.map((p) => (
               <li key={p} className="flex items-start gap-2.5 text-[0.95rem]">
-                <Check
-                  className="mt-1 size-[18px] shrink-0 text-pine"
-                  strokeWidth={3}
-                />
+                <Check className="mt-1 size-[18px] shrink-0 text-pine" strokeWidth={3} />
                 {p}
               </li>
             ))}
@@ -421,9 +424,7 @@ export default function Landing() {
             免費試用 14 天
           </Link>
         </div>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          不需要信用卡即可開始試用。
-        </p>
+        <p className="mt-4 text-center text-sm text-muted-foreground">不需要信用卡即可開始試用。</p>
       </section>
 
       {/* Final CTA */}
