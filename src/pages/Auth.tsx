@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { usePageMeta } from "@/lib/page-meta";
 
 export default function Auth({ mode: initialMode = "signin" }: { mode?: "signin" | "signup" }) {
@@ -53,15 +52,13 @@ export default function Auth({ mode: initialMode = "signin" }: { mode?: "signin"
   }
 
   async function handleGoogle() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
     });
-    if (result.error) {
+    if (error) {
       toast.error("Google 登入失敗，請再試一次");
-      return;
     }
-    if (result.redirected) return;
-    navigate(redirectTo);
   }
 
   return (
