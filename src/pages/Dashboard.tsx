@@ -1,23 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-
-export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({
-    meta: [
-      { title: "我的航線 — Flight Price Notifier" },
-      {
-        name: "description",
-        content: "Your watched flight routes and target prices.",
-      },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
-  component: DashboardPage,
-});
+import { usePageMeta } from "@/lib/page-meta";
 
 type Watch = {
   id: string;
@@ -39,7 +26,13 @@ const DESTINATIONS = [
   { code: "OKA", name: "沖繩" },
 ];
 
-function DashboardPage() {
+export default function Dashboard() {
+  usePageMeta({
+    title: "我的航線 — Flight Price Notifier",
+    description: "Your watched flight routes and target prices.",
+    robots: "noindex",
+  });
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [destination, setDestination] = useState("NRT");
@@ -108,7 +101,7 @@ function DashboardPage() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    navigate("/sign-in", { replace: true });
   }
 
   return (
@@ -144,9 +137,7 @@ function DashboardPage() {
 
       <main className="mx-auto max-w-6xl px-5 py-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            我的監看航線
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">我的監看航線</h1>
           <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
             My watched routes
           </span>
@@ -227,9 +218,7 @@ function DashboardPage() {
             <span />
           </div>
           {isLoading ? (
-            <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-              載入中…
-            </div>
+            <div className="px-5 py-8 text-center text-sm text-muted-foreground">載入中…</div>
           ) : !watches || watches.length === 0 ? (
             <div className="px-5 py-10 text-center">
               <p className="text-sm text-muted-foreground">
@@ -246,13 +235,9 @@ function DashboardPage() {
                   <span className="font-mono text-sm font-medium">
                     {w.origin} → {w.destination}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {w.destination_name}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{w.destination_name}</span>
                 </div>
-                <span className="font-mono text-sm">
-                  NT${w.target_price.toLocaleString()}
-                </span>
+                <span className="font-mono text-sm">NT${w.target_price.toLocaleString()}</span>
                 <span className="inline-flex w-fit items-center gap-1 rounded-full bg-foreground/8 px-2.5 py-1 font-mono text-[11px] font-medium text-muted-foreground">
                   監看中
                 </span>

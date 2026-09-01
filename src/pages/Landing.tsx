@@ -1,29 +1,8 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
-
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Flight Price Notifier — 機票降價通知，台北出發" },
-      {
-        name: "description",
-        content:
-          "設定航線與目標價，機票降價就通知你。Set a route and a target price — we email you when the fare drops.",
-      },
-      { property: "og:title", content: "Flight Price Notifier — 機票降價通知" },
-      {
-        property: "og:description",
-        content:
-          "設定航線與目標價，機票降價就通知你。Set a route and a target price — we email you when the fare drops.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Index,
-});
+import { usePageMeta } from "@/lib/page-meta";
 
 function Header() {
   const [signedIn, setSignedIn] = useState(false);
@@ -58,14 +37,14 @@ function Header() {
         </Link>
         {signedIn ? (
           <Link
-            to="/dashboard"
+            to="/app"
             className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-primary"
           >
             我的航線 <span className="px-1 text-muted-foreground">/</span> Dashboard
           </Link>
         ) : (
           <Link
-            to="/auth"
+            to="/sign-in"
             className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-primary"
           >
             Sign in <span className="px-1 text-muted-foreground">/</span> 登入
@@ -111,7 +90,13 @@ const WATCHED_ROUTES = [
   },
 ];
 
-function Index() {
+export default function Landing() {
+  usePageMeta({
+    title: "Flight Price Notifier — 機票降價通知，台北出發",
+    description:
+      "設定航線與目標價，機票降價就通知你。Set a route and a target price — we email you when the fare drops.",
+  });
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -129,12 +114,12 @@ function Index() {
               機票降價就通知你
             </h1>
             <p className="mt-4 max-w-[42ch] text-lg text-muted-foreground text-pretty">
-              Set a route and a target price — we email you the moment the fare
-              drops below your line.
+              Set a route and a target price — we email you the moment the fare drops below your
+              line.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                to="/auth"
+                to="/sign-in"
                 className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Free · 免費開始
@@ -158,13 +143,9 @@ function Index() {
             </div>
             <div className="mt-4 flex items-end justify-between">
               <div>
-                <div className="font-mono text-xs text-muted-foreground">
-                  NRT · 東京
-                </div>
+                <div className="font-mono text-xs text-muted-foreground">NRT · 東京</div>
                 <div className="mt-1 flex items-end gap-3">
-                  <span className="font-mono text-5xl font-medium tracking-tight">
-                    NT$7,280
-                  </span>
+                  <span className="font-mono text-5xl font-medium tracking-tight">NT$7,280</span>
                   <span className="font-mono text-sm text-muted-foreground line-through">
                     8,150
                   </span>
@@ -198,9 +179,7 @@ function Index() {
                 ✓
               </span>
               <div className="leading-tight">
-                <div className="text-sm font-medium">
-                  已達目標價 — 已寄出通知
-                </div>
+                <div className="text-sm font-medium">已達目標價 — 已寄出通知</div>
                 <div className="font-mono text-[10px] text-muted-foreground">
                   just now · 寄到你的信箱
                 </div>
@@ -244,13 +223,9 @@ function Index() {
               className="animate-[rise_0.6s_cubic-bezier(0.32,0.72,0,1)_both] rounded-xl border border-border bg-card p-5"
               style={{ animationDelay: step.delay }}
             >
-              <span className="font-mono text-xs tracking-[0.2em] text-primary">
-                {step.key}
-              </span>
+              <span className="font-mono text-xs tracking-[0.2em] text-primary">{step.key}</span>
               <div className="mt-3 text-lg font-semibold">{step.title}</div>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                {step.body}
-              </p>
+              <p className="mt-1.5 text-sm text-muted-foreground">{step.body}</p>
             </div>
           ))}
         </div>
@@ -259,9 +234,7 @@ function Index() {
       {/* Watched routes */}
       <section className="mx-auto max-w-6xl px-5 py-6 pb-16">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            正在監看的航線
-          </h2>
+          <h2 className="text-2xl font-semibold tracking-tight">正在監看的航線</h2>
           <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
             Watched routes
           </span>
@@ -286,9 +259,7 @@ function Index() {
                 <span className="text-xs text-muted-foreground">{r.city}</span>
               </div>
               <span className="font-mono text-sm">{r.current}</span>
-              <span className="font-mono text-sm text-muted-foreground">
-                {r.target}
-              </span>
+              <span className="font-mono text-sm text-muted-foreground">{r.target}</span>
               <span
                 className={`inline-flex items-center gap-1 self-center rounded-full px-2.5 py-1 font-mono text-[11px] font-medium ${r.statusClass}`}
               >
@@ -304,9 +275,7 @@ function Index() {
         <div className="mx-auto max-w-6xl px-5 py-10">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div className="max-w-[34ch]">
-              <div className="text-lg font-semibold tracking-tight">
-                Flight Price Notifier
-              </div>
+              <div className="text-lg font-semibold tracking-tight">Flight Price Notifier</div>
               <p className="mt-2 text-sm text-muted-foreground">
                 我們只在你設定的航線真的降價時才寫信給你 — 絕不轟炸信箱。
               </p>
@@ -317,7 +286,7 @@ function Index() {
                 <a href="#how" className="block hover:text-primary">
                   How it works
                 </a>
-                <Link to="/auth" className="block hover:text-primary">
+                <Link to="/sign-in" className="block hover:text-primary">
                   Sign in
                 </Link>
               </div>

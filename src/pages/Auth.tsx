@@ -1,37 +1,25 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { usePageMeta } from "@/lib/page-meta";
 
-export const Route = createFileRoute("/auth")({
-  head: () => ({
-    meta: [
-      { title: "登入 — Flight Price Notifier" },
-      {
-        name: "description",
-        content: "Sign in to Flight Price Notifier to watch fares from Taipei.",
-      },
-      { property: "og:title", content: "登入 — Flight Price Notifier" },
-      {
-        property: "og:description",
-        content: "Sign in to Flight Price Notifier to watch fares from Taipei.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: AuthPage,
-});
-
-function AuthPage() {
+export default function Auth({ mode: initialMode = "signin" }: { mode?: "signin" | "signup" }) {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/app";
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmSent, setConfirmSent] = useState(false);
+
+  usePageMeta({
+    title: mode === "signin" ? "登入 — Flight Price Notifier" : "建立帳號 — Flight Price Notifier",
+    description: "Sign in to Flight Price Notifier to watch fares from Taipei.",
+  });
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +31,7 @@ function AuthPage() {
           password,
         });
         if (error) throw error;
-        navigate({ to: "/dashboard" });
+        navigate(redirectTo);
       } else {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -54,7 +42,7 @@ function AuthPage() {
         if (!data.session) {
           setConfirmSent(true);
         } else {
-          navigate({ to: "/dashboard" });
+          navigate(redirectTo);
         }
       }
     } catch (err) {
@@ -73,7 +61,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    navigate(redirectTo);
   }
 
   return (
@@ -84,9 +72,7 @@ function AuthPage() {
             <span className="grid size-7 place-items-center rounded-md bg-primary font-mono text-[11px] font-medium text-primary-foreground">
               F!
             </span>
-            <span className="text-[15px] font-semibold tracking-tight">
-              Flight Price Notifier
-            </span>
+            <span className="text-[15px] font-semibold tracking-tight">Flight Price Notifier</span>
           </Link>
         </div>
       </header>
@@ -161,11 +147,7 @@ function AuthPage() {
                   disabled={loading}
                   className="w-full rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
                 >
-                  {loading
-                    ? "請稍候…"
-                    : mode === "signin"
-                      ? "Sign in / 登入"
-                      : "Sign up / 註冊"}
+                  {loading ? "請稍候…" : mode === "signin" ? "Sign in / 登入" : "Sign up / 註冊"}
                 </button>
               </form>
 
@@ -187,9 +169,7 @@ function AuthPage() {
               <p className="mt-5 text-center text-sm text-muted-foreground">
                 {mode === "signin" ? "還沒有帳號？" : "已經有帳號？"}{" "}
                 <button
-                  onClick={() =>
-                    setMode(mode === "signin" ? "signup" : "signin")
-                  }
+                  onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
                   className="font-medium text-primary hover:underline"
                 >
                   {mode === "signin" ? "免費註冊" : "直接登入"}
