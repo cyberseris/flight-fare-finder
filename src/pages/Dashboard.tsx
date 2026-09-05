@@ -6,25 +6,32 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/lib/page-meta";
 
-type Watch = {
-  id: string;
-  origin: string;
-  destination: string;
-  destination_name: string;
-  target_price: number;
-  created_at: string;
+// Public HTTP API (no auth) fronting the flight-save-subscription /
+// flight-list-subscriptions Lambdas. Not a secret — the browser holds no
+// AWS credentials, it only ever talks to this API Gateway endpoint.
+const API_BASE = "https://teujqqmjpi.execute-api.us-east-1.amazonaws.com";
+
+type PlanName = "tokyo" | "seoul";
+
+type Plan = {
+  name: PlanName;
+  label: string;
+  route: string;
+  hint: string;
 };
 
-const DESTINATIONS = [
-  { code: "NRT", name: "東京" },
-  { code: "KIX", name: "大阪" },
-  { code: "ICN", name: "首爾" },
-  { code: "BKK", name: "曼谷" },
-  { code: "SIN", name: "新加坡" },
-  { code: "HKG", name: "香港" },
-  { code: "FUK", name: "福岡" },
-  { code: "OKA", name: "沖繩" },
+const PLANS: Plan[] = [
+  { name: "tokyo", label: "台北 ✈ 東京", route: "TPE-TYO", hint: "目前最低約 NT$9,325" },
+  { name: "seoul", label: "台北 ✈ 首爾", route: "TPE-SEL", hint: "目前最低約 NT$5,989" },
 ];
+
+type Subscription = {
+  email: string;
+  route: string;
+  plan_name: PlanName;
+  target_price: number;
+  currency: string;
+};
 
 export default function Dashboard() {
   usePageMeta({
@@ -35,66 +42,53 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [destination, setDestination] = useState("NRT");
-  const [targetPrice, setTargetPrice] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [targets, setTargets] = useState<Record<PlanName, string>>({ tokyo: "", seoul: "" });
+  const [savingPlan, setSavingPlan] = useState<PlanName | null>(null);
 
   const { data: sessionData } = useQuery({
     queryKey: ["session"],
     queryFn: async () => (await supabase.auth.getSession()).data.session,
   });
 
-  const { data: watches, isLoading } = useQuery({
-    queryKey: ["watches"],
+  const email = sessionData?.user?.email;
+
+  const { data: subscriptions, isLoading } = useQuery({
+    queryKey: ["subscriptions", email],
+    enabled: !!email,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("watches")
-        .select("id, origin, destination, destination_name, target_price, created_at")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Watch[];
+      const res = await fetch(`${API_BASE}/subscriptions?email=${encodeURIComponent(email!)}`);
+      if (!res.ok) throw new Error("讀取訂閱狀態失敗");
+      const data = await res.json();
+      return data.subscriptions as Subscription[];
     },
   });
 
-  async function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    const price = Number(targetPrice);
+  const subsByPlan = new Map((subscriptions ?? []).map((s) => [s.plan_name, s] as const));
+
+  async function handleSubscribe(plan: Plan) {
+    if (!email) return;
+    const raw = targets[plan.name];
+    const price = Number(raw);
     if (!Number.isFinite(price) || price <= 0) {
       toast.error("請輸入有效的目標價");
       return;
     }
-    setSaving(true);
+    setSavingPlan(plan.name);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("請先登入");
-      const dest = DESTINATIONS.find((d) => d.code === destination)!;
-      const { error } = await supabase.from("watches").insert({
-        user_id: user.id,
-        origin: "TPE",
-        destination: dest.code,
-        destination_name: dest.name,
-        target_price: price,
+      const res = await fetch(`${API_BASE}/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, plan_name: plan.name, target_price: price }),
       });
-      if (error) throw error;
-      toast.success(`已開始監看 TPE → ${dest.code}（${dest.name}）`);
-      setTargetPrice("");
-      await queryClient.invalidateQueries({ queryKey: ["watches"] });
+      if (!res.ok) throw new Error("訂閱失敗，請稍後再試");
+      toast.success(`已開始追蹤 ${plan.label}`);
+      setTargets((t) => ({ ...t, [plan.name]: "" }));
+      await queryClient.invalidateQueries({ queryKey: ["subscriptions", email] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "新增失敗");
+      toast.error(err instanceof Error ? err.message : "訂閱失敗");
     } finally {
-      setSaving(false);
+      setSavingPlan(null);
     }
-  }
-
-  async function handleDelete(id: string) {
-    const { error } = await supabase.from("watches").delete().eq("id", id);
-    if (error) {
-      toast.error("刪除失敗");
-      return;
-    }
-    await queryClient.invalidateQueries({ queryKey: ["watches"] });
   }
 
   async function handleSignOut() {
@@ -122,9 +116,7 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden font-mono text-xs text-muted-foreground sm:block">
-              {sessionData?.user?.email}
-            </span>
+            <span className="hidden font-mono text-xs text-muted-foreground sm:block">{email}</span>
             <button
               onClick={handleSignOut}
               className="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-card"
@@ -137,120 +129,77 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-6xl px-5 py-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">我的監看航線</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">我的航線</h1>
           <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-            My watched routes
+            My routes
           </span>
         </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          選擇航線並設定目標價，機票降到目標以下時會寄信通知你。
+        </p>
 
-        {/* Add watch form */}
-        <form
-          onSubmit={handleAdd}
-          className="mt-6 flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-card p-5"
-        >
-          <div>
-            <label
-              htmlFor="origin"
-              className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase"
-            >
-              From
-            </label>
-            <div
-              id="origin"
-              className="mt-1 rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm text-muted-foreground"
-            >
-              TPE · 台北
-            </div>
-          </div>
-          <div>
-            <label
-              htmlFor="destination"
-              className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase"
-            >
-              To · 目的地
-            </label>
-            <select
-              id="destination"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              className="mt-1 block rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-            >
-              {DESTINATIONS.map((d) => (
-                <option key={d.code} value={d.code}>
-                  {d.code} · {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label
-              htmlFor="target"
-              className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase"
-            >
-              Target · 目標價 (NT$)
-            </label>
-            <input
-              id="target"
-              type="number"
-              min={1}
-              required
-              value={targetPrice}
-              onChange={(e) => setTargetPrice(e.target.value)}
-              placeholder="7500"
-              className="mt-1 block w-36 rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm outline-none focus:border-primary"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
-          >
-            {saving ? "新增中…" : "開始監看"}
-          </button>
-        </form>
-
-        {/* Watch list */}
-        <div className="mt-8 overflow-hidden rounded-2xl border border-border">
-          <div className="grid grid-cols-[1.4fr_1fr_1fr_0.6fr] gap-3 border-b border-border bg-card px-5 py-3 font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
-            <span>Route · 航線</span>
-            <span>Target · 目標價</span>
-            <span>Status</span>
-            <span />
-          </div>
-          {isLoading ? (
-            <div className="px-5 py-8 text-center text-sm text-muted-foreground">載入中…</div>
-          ) : !watches || watches.length === 0 ? (
-            <div className="px-5 py-10 text-center">
-              <p className="text-sm text-muted-foreground">
-                還沒有監看的航線。在上方新增一條，降價時我們會寄信通知你。
-              </p>
-            </div>
-          ) : (
-            watches.map((w) => (
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          {PLANS.map((plan) => {
+            const sub = subsByPlan.get(plan.name);
+            const isSaving = savingPlan === plan.name;
+            return (
               <div
-                key={w.id}
-                className="grid grid-cols-[1.4fr_1fr_1fr_0.6fr] items-center gap-3 border-b border-border px-5 py-3.5 last:border-b-0"
+                key={plan.name}
+                className="rounded-2xl border border-border bg-card p-6 shadow-soft"
               >
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-sm font-medium">
-                    {w.origin} → {w.destination}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{w.destination_name}</span>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight">{plan.label}</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">{plan.hint}</p>
+                  </div>
+                  {sub && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 font-mono text-[11px] font-medium text-accent">
+                      已訂閱
+                    </span>
+                  )}
                 </div>
-                <span className="font-mono text-sm">NT${w.target_price.toLocaleString()}</span>
-                <span className="inline-flex w-fit items-center gap-1 rounded-full bg-foreground/8 px-2.5 py-1 font-mono text-[11px] font-medium text-muted-foreground">
-                  監看中
-                </span>
-                <button
-                  onClick={() => handleDelete(w.id)}
-                  className="justify-self-end rounded-full border border-border px-3 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                >
-                  移除
-                </button>
+
+                {sub && (
+                  <p className="mt-4 font-mono text-sm">
+                    目前目標價：
+                    <span className="font-semibold">NT${sub.target_price.toLocaleString()}</span>
+                  </p>
+                )}
+
+                <div className="mt-4 flex flex-wrap items-end gap-3">
+                  <div>
+                    <label
+                      htmlFor={`target-${plan.name}`}
+                      className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase"
+                    >
+                      目標價 (NT$)
+                    </label>
+                    <input
+                      id={`target-${plan.name}`}
+                      type="number"
+                      min={1}
+                      value={targets[plan.name]}
+                      onChange={(e) => setTargets((t) => ({ ...t, [plan.name]: e.target.value }))}
+                      placeholder={sub ? String(sub.target_price) : "9000"}
+                      className="mt-1 block w-32 rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm outline-none focus:border-primary"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleSubscribe(plan)}
+                    disabled={isSaving}
+                    className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                  >
+                    {isSaving ? "處理中…" : sub ? "更新目標價" : "開始追蹤"}
+                  </button>
+                </div>
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
+
+        {isLoading && email && (
+          <p className="mt-4 text-sm text-muted-foreground">載入訂閱狀態中…</p>
+        )}
       </main>
     </div>
   );
