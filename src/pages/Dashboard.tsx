@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plane } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,12 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePageMeta } from "@/lib/page-meta";
 
 // Public HTTP API (no auth) fronting the flight-save-subscription /
-// flight-list-subscriptions / flight-cancel-subscription Lambdas. Not a
-// secret — the browser holds no AWS credentials, it only ever talks to
-// this API Gateway endpoint.
+// flight-list-subscriptions Lambdas. Not a secret — the browser holds no
+// AWS credentials, it only ever talks to this API Gateway endpoint.
 const API_BASE = "https://teujqqmjpi.execute-api.us-east-1.amazonaws.com";
 
-type PlanName = "tokyo" | "seoul";
+type PlanName = "tokyo" | "seoul" | "london";
 
 type Plan = {
   name: PlanName;
@@ -22,11 +22,10 @@ type Plan = {
 };
 
 const PLANS: Plan[] = [
-  { name: "tokyo", label: "台北 ✈ 東京", route: "TPE-TYO", hint: "目前最低約 NT$9,325" },
-  { name: "seoul", label: "台北 ✈ 首爾", route: "TPE-SEL", hint: "目前最低約 NT$5,989" },
+  { name: "tokyo", label: "台北 ➛ 東京", route: "TPE-TYO", hint: "目前最低約 NT$9,325（參考）" },
+  { name: "seoul", label: "台北 ➛ 首爾", route: "TPE-SEL", hint: "目前最低約 NT$5,989（參考）" },
+  { name: "london", label: "台北 ➛ 倫敦", route: "TPE-LON", hint: "目前最低約 NT$30,924（參考）" },
 ];
-
-type SubscriptionStatus = "pending_payment" | "active" | "cancelled" | "expired";
 
 type Subscription = {
   email: string;
@@ -34,42 +33,7 @@ type Subscription = {
   plan_name: PlanName;
   target_price: number;
   currency: string;
-  subscription_status?: SubscriptionStatus;
-  current_period_end_date?: string;
 };
-
-function StatusBadge({ sub }: { sub: Subscription | undefined }) {
-  if (!sub) return null;
-  switch (sub.subscription_status) {
-    case "active":
-      return (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 font-mono text-[11px] font-medium text-accent">
-          訂閱中
-        </span>
-      );
-    case "pending_payment":
-      return (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-yellow-500/15 px-2.5 py-1 font-mono text-[11px] font-medium text-yellow-600">
-          等待付款
-        </span>
-      );
-    case "cancelled":
-      return (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] font-medium text-muted-foreground">
-          已取消{sub.current_period_end_date ? ` · 服務至 ${sub.current_period_end_date}` : ""}
-        </span>
-      );
-    case "expired":
-      return (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-1 font-mono text-[11px] font-medium text-destructive">
-          訂閱已到期
-        </span>
-      );
-    default:
-      // Legacy M1 rows with no subscription_status at all are treated like "no subscription".
-      return null;
-  }
-}
 
 export default function Dashboard() {
   usePageMeta({
@@ -81,9 +45,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [targets, setTargets] = useState<Record<PlanName, string>>({ tokyo: "", seoul: "" });
+  const [targets, setTargets] = useState<Record<PlanName, string>>({
+    tokyo: "",
+    seoul: "",
+    london: "",
+  });
   const [savingPlan, setSavingPlan] = useState<PlanName | null>(null);
-  const [cancelingPlan, setCancelingPlan] = useState<PlanName | null>(null);
   const shownPurchaseToast = useRef(false);
 
   const { data: sessionData } = useQuery({
@@ -93,7 +60,7 @@ export default function Dashboard() {
 
   const email = sessionData?.user?.email;
 
-  const { data: subscriptions, isLoading } = useQuery({
+  const { data: subscriptions } = useQuery({
     queryKey: ["subscriptions", email],
     enabled: !!email,
     queryFn: async () => {
@@ -155,7 +122,7 @@ export default function Dashboard() {
         return;
       }
 
-      // Active or cancelled-in-grace: in-place target-price update, no re-payment.
+      // Already active / cancelled-in-grace: in-place target-price update, no re-payment.
       toast.success(`已更新 ${plan.label} 的目標價`);
       setTargets((t) => ({ ...t, [plan.name]: "" }));
       await queryClient.invalidateQueries({ queryKey: ["subscriptions", email] });
@@ -163,26 +130,6 @@ export default function Dashboard() {
       toast.error(err instanceof Error ? err.message : "訂閱失敗");
     } finally {
       setSavingPlan(null);
-    }
-  }
-
-  async function handleCancel(plan: Plan) {
-    if (!email) return;
-    setCancelingPlan(plan.name);
-    try {
-      const res = await fetch(`${API_BASE}/cancel`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, route: plan.route }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error ?? "取消訂閱失敗，請稍後再試");
-      toast.success(`已取消 ${plan.label} 的訂閱，服務會持續到目前計費週期結束`);
-      await queryClient.invalidateQueries({ queryKey: ["subscriptions", email] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "取消訂閱失敗");
-    } finally {
-      setCancelingPlan(null);
     }
   }
 
@@ -195,77 +142,54 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
+      <header className="sticky top-0 z-30 border-b border-transparent bg-background/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-7 place-items-center rounded-md bg-primary font-mono text-[11px] font-medium text-primary-foreground">
-              F!
+            <span className="grid size-9 -rotate-6 place-items-center rounded-[0.7rem] bg-primary text-primary-foreground">
+              <Plane className="size-5" strokeWidth={2.2} />
             </span>
-            <span className="leading-none">
-              <span className="block text-[15px] font-semibold tracking-tight">
-                Flight Price Notifier
-              </span>
-              <span className="mt-0.5 block font-mono text-[9px] tracking-[0.2em] text-muted-foreground">
-                機票降價通知
-              </span>
+            <span className="font-display text-[15px] font-extrabold tracking-tight">
+              Flight Price Notifier
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden font-mono text-xs text-muted-foreground sm:block">{email}</span>
-            <button
-              onClick={handleSignOut}
-              className="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-card"
-            >
-              登出
-            </button>
-          </div>
+          <button
+            onClick={handleSignOut}
+            className="rounded-full bg-secondary px-4 py-2 font-display text-sm font-bold text-secondary-foreground transition-colors hover:bg-muted"
+          >
+            Sign out / 登出
+          </button>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-5 py-10">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">我的航線</h1>
-          <span className="font-mono text-[11px] tracking-[0.2em] text-muted-foreground uppercase">
-            My routes
-          </span>
-        </div>
+        <h1 className="font-display text-2xl font-extrabold tracking-tight">Hi {email}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          選擇航線並設定目標價，機票降到目標以下時會寄信通知你。
+          選擇航線並設定目標價，
+          <span className="rounded bg-accent px-1 py-0.5 font-medium text-accent-foreground">
+            訂閱 NT$300/月
+          </span>
+          後，達標時我們會寄 Email 通知你。
+          <br />
+          Pick a route, set a target price, and subscribe (NT$300/month) — we'll email you when fare
+          drops to your budget.
         </p>
 
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           {PLANS.map((plan) => {
             const sub = subsByPlan.get(plan.name);
             const isSaving = savingPlan === plan.name;
-            const isCanceling = cancelingPlan === plan.name;
-            const isActive = sub?.subscription_status === "active";
-            const isCancelled = sub?.subscription_status === "cancelled";
-            const hasUsableSub = isActive || isCancelled;
-            const buttonLabel = isSaving
-              ? "處理中…"
-              : hasUsableSub
-                ? "更新目標價"
-                : sub?.subscription_status === "pending_payment"
-                  ? "前往付款"
-                  : "開始追蹤";
 
             return (
-              <div
-                key={plan.name}
-                className="rounded-2xl border border-border bg-card p-6 shadow-soft"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-lg font-semibold tracking-tight">{plan.label}</h2>
-                    <p className="mt-1 text-xs text-muted-foreground">{plan.hint}</p>
-                  </div>
-                  <StatusBadge sub={sub} />
-                </div>
+              <div key={plan.name} className="rounded-2xl bg-peach p-6">
+                <h2 className="font-display text-lg font-bold tracking-tight text-peach-foreground">
+                  {plan.label}
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">{plan.hint}</p>
 
-                {hasUsableSub && (
+                {sub && (
                   <p className="mt-4 font-mono text-sm">
                     目前目標價：
-                    <span className="font-semibold">NT${sub!.target_price.toLocaleString()}</span>
+                    <span className="font-semibold">NT${sub.target_price.toLocaleString()}</span>
                   </p>
                 )}
 
@@ -273,9 +197,9 @@ export default function Dashboard() {
                   <div>
                     <label
                       htmlFor={`target-${plan.name}`}
-                      className="font-mono text-[11px] tracking-[0.15em] text-muted-foreground uppercase"
+                      className="font-mono text-[11px] tracking-[0.1em] text-muted-foreground"
                     >
-                      目標價 (NT$)
+                      目標價 Target price (NT$)
                     </label>
                     <input
                       id={`target-${plan.name}`}
@@ -283,35 +207,22 @@ export default function Dashboard() {
                       min={1}
                       value={targets[plan.name]}
                       onChange={(e) => setTargets((t) => ({ ...t, [plan.name]: e.target.value }))}
-                      placeholder={hasUsableSub ? String(sub!.target_price) : "9000"}
+                      placeholder={sub ? String(sub.target_price) : "9000"}
                       className="mt-1 block w-32 rounded-lg border border-input bg-background px-3 py-2 font-mono text-sm outline-none focus:border-primary"
                     />
                   </div>
                   <button
                     onClick={() => handleSubscribe(plan)}
                     disabled={isSaving}
-                    className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                    className="rounded-full bg-primary px-5 py-2.5 font-display text-sm font-bold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
                   >
-                    {buttonLabel}
+                    {isSaving ? "處理中…" : "訂閱並付款"}
                   </button>
-                  {isActive && (
-                    <button
-                      onClick={() => handleCancel(plan)}
-                      disabled={isCanceling}
-                      className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-background disabled:opacity-60"
-                    >
-                      {isCanceling ? "取消中…" : "取消訂閱"}
-                    </button>
-                  )}
                 </div>
               </div>
             );
           })}
         </div>
-
-        {isLoading && email && (
-          <p className="mt-4 text-sm text-muted-foreground">載入訂閱狀態中…</p>
-        )}
       </main>
     </div>
   );
